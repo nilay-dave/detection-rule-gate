@@ -6,6 +6,9 @@
 from drg.checks import (  # noqa: F401
     attack,
     conditions,
+    falsepositives,
+    logsource,
+    wildcards,
 )
 from drg.checks.base import (
     CheckSpec,
