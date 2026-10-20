@@ -326,7 +326,18 @@ class TestJsonReport:
         assert document["findings"][0]["file"] == "/elsewhere/rule.yml"
 
     def test_rendering_without_a_base_keeps_the_path_as_given(self):
+        """No base means no relativising, so an absolute target stays absolute.
+
+        The first version of this test asserted the paths came back relative,
+        which was me writing down what I wanted rather than what the function
+        does. The engine was given an absolute directory, so absolute is the
+        correct answer and relativising it without being told a root would be
+        the function guessing.
+        """
         from drg.report import render_json
 
         document = json.loads(render_json(violations()))
-        assert all(entry["file"].startswith("tests/fixtures/") for entry in document["findings"])
+        assert document["findings"]
+        for entry in document["findings"]:
+            assert entry["file"].startswith("/")
+            assert entry["file"].endswith(".yml")
