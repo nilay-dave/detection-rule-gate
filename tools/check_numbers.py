@@ -24,7 +24,12 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PATTERN = re.compile(r"<!--number:([a-zA-Z0-9_.\[\]]+)-->(.*?)<!--/number-->", re.DOTALL)
+# Hyphens are allowed in a path segment because this project's metrics are keyed
+# by check id and every check id is hyphenated. Without them every published
+# firing rate matched ANY_MARKER and not PATTERN, which the loud failure below
+# would have reported as an unparseable marker rather than letting it pass
+# unchecked, but a correct path should not need working around.
+PATTERN = re.compile(r"<!--number:([a-zA-Z0-9_.\-\[\]]+)-->(.*?)<!--/number-->", re.DOTALL)
 # Any opening marker at all. A marker that does not match PATTERN, for example
 # because its path contains a character the resolver cannot address, used to be
 # skipped in silence, so a tagged number went unchecked while the run still
@@ -47,7 +52,7 @@ def resolve(payload: dict, dotted: str):
     """Walk a dotted path, supporting [index] for lists."""
     node = payload
     for part in dotted.split("."):
-        match = re.fullmatch(r"([a-zA-Z0-9_]+)\[(\d+)\]", part)
+        match = re.fullmatch(r"([a-zA-Z0-9_\-]+)\[(\d+)\]", part)
         if match:
             node = node[match.group(1)][int(match.group(2))]
         else:
@@ -81,7 +86,14 @@ def check(readme: Path, metrics: Path) -> list[str]:
     checked = 0
 
     for document in documents(readme):
-        where = document.relative_to(ROOT)
+        # Resolved first. A relative path passed on the command line is not a
+        # subpath of ROOT as written, and relative_to raised rather than
+        # reporting a finding, so the tool crashed on the one invocation a
+        # person would type by hand.
+        try:
+            where = document.resolve().relative_to(ROOT)
+        except ValueError:
+            where = document
         text = document.read_text(encoding="utf-8")
 
         parsed = {m.group(1) for m in PATTERN.finditer(text)}

@@ -1,0 +1,37 @@
+name: Feature request
+description: A check that should exist, or something the gate should do.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: >
+        `docs/limitations.md` lists what this deliberately does not do, each with
+        the condition that would trigger building it. If your request is there,
+        saying so is the most useful thing you can add: those triggers are
+        waiting for someone to meet them.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The detection content problem
+      description: >
+        What goes wrong in a rule today that nobody notices until later. A check
+        is worth having when the failure is silent.
+    validations:
+      required: true
+
+  - type: textarea
+    id: example
+    attributes:
+      label: A rule that has the problem
+      render: yaml
+
+  - type: textarea
+    id: falsepositives
+    attributes:
+      label: What correct Sigma might look similar
+      description: >
+        The hard part of every check in this tool was telling the problem apart
+        from a legitimate idiom that resembles it. If you can think of content
+        that would be wrongly flagged, that is the most valuable part of this
+        report.

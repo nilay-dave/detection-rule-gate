@@ -1,0 +1,194 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: verify (python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.12', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # provenance_check.py reads the commit history, which a shallow
+          # checkout does not have.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install
+        run: python -m pip install -e ".[dev]"
+
+      - name: Lint
+        run: python -m ruff check src tests tools benchmark scripts
+
+      - name: Test
+        run: python -m pytest --cov=drg --cov-report=term-missing --cov-report=xml
+
+      - name: House style
+        run: |
+          python tools/check_dashes.py
+          python tools/check_tables.py
+
+      - name: Declared dependencies are all used
+        run: python tools/check_dependencies.py
+
+      - name: Generated documentation is current
+        run: python tools/generate_checks_doc.py --check
+
+      - name: Gate this repository with itself
+        run: python -m drg.cli check tests/fixtures --config .detection-rule-gate.yml
+
+      - name: Provenance
+        if: matrix.python == '3.13'
+        run: python scripts/provenance_check.py
+
+  corpus:
+    name: measure against the public corpus
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install
+        run: python -m pip install -e ".[dev]"
+
+      - name: Fetch the corpus at the pinned commit
+        run: python tools/fetch_corpus.py
+
+      - name: Measure
+        run: python benchmark/run_benchmark.py
+
+      - name: Published numbers match measured ones
+        # Runs after the benchmark, so a figure in the README that has drifted
+        # from the corpus it was measured against fails the build rather than
+        # quietly misleading a reader.
+        run: python tools/check_numbers.py
+
+      - name: The measurement did not change what is reported
+        # A corpus run that produced a different finding count than the
+        # committed metrics means either the corpus pin moved without the
+        # numbers being regenerated, or a check changed behaviour silently.
+        run: git diff --exit-code -- docs/metrics.json
+
+      - name: Produce SARIF for the corpus
+        run: |
+          python -m drg.cli check .corpus/sigma/rules --no-config \
+            --format sarif --output corpus.sarif \
+            --base "$GITHUB_WORKSPACE" \
+            --repository "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+            --fail-on off
+
+      - name: SARIF is well formed and maps onto files
+        run: |
+          python - <<'PY'
+          import json, pathlib
+          document = json.loads(pathlib.Path("corpus.sarif").read_text())
+          run = document["runs"][0]
+          declared = {rule["id"] for rule in run["tool"]["driver"]["rules"]}
+          assert document["version"] == "2.1.0", document["version"]
+          assert run["results"], "no results, so nothing proves the mapping works"
+          for result in run["results"]:
+              assert result["ruleId"] in declared, result["ruleId"]
+              uri = result["locations"][0]["physicalLocation"]["artifactLocation"]["uri"]
+              assert not uri.startswith(("/", "..")), uri
+              assert pathlib.Path(uri).is_file(), f"{uri} does not exist in the checkout"
+          print(f"{len(run['results'])} results, every uri resolves to a real file")
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: corpus-sarif
+          path: corpus.sarif
+
+  action:
+    name: the action runs itself
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The only way to know a composite action works is to run it. Its own
+      # fixtures are the input, because they are the one corpus whose expected
+      # findings are written down.
+      - name: Run the action on the clean fixtures
+        id: clean
+        uses: ./
+        with:
+          paths: tests/fixtures/clean
+          fail-on: error
+
+      - name: It passed and reported nothing
+        run: |
+          test "${{ steps.clean.outputs.exit-code }}" = "0"
+          test "${{ steps.clean.outputs.findings }}" = "0"
+
+      - name: Run the action on the violation fixtures
+        id: violations
+        continue-on-error: true
+        uses: ./
+        with:
+          paths: tests/fixtures/violations
+          config: /dev/null
+          fail-on: error
+          sarif: violations.sarif
+
+      - name: It failed, counted every finding, and still wrote the sarif
+        run: |
+          test "${{ steps.violations.outcome }}" = "failure"
+          test "${{ steps.violations.outputs.exit-code }}" = "1"
+          test "${{ steps.violations.outputs.findings }}" = "12"
+          test -s violations.sarif
+
+  startup:
+    name: install cost on a runner
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      # ADR-001 declines to publish an install timing measured off a runner,
+      # because repeating it in the development environment gave 2.85s, 14.76s
+      # and 39.87s for identical work. This measures it where it matters and
+      # writes it to the run summary rather than into the README.
+      - name: Time both dependency sets
+        run: |
+          {
+            echo "## Install cost on this runner"
+            echo
+            echo "| dependencies | time | packages | size |"
+            echo "| --- | --- | --- | --- |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          for spec in "pyyaml pydantic" "pyyaml pydantic typer"; do
+            rm -rf /tmp/venv && python -m venv /tmp/venv
+            start=$(date +%s.%N)
+            /tmp/venv/bin/pip install --quiet --no-cache-dir $spec
+            end=$(date +%s.%N)
+            packages=$(/tmp/venv/bin/pip list --format=freeze | grep -vcE '^(pip|setuptools)==')
+            size=$(du -sm /tmp/venv | cut -f1)
+            printf '| `%s` | %.2fs | %s | %sMB |\n' \
+              "$spec" "$(echo "$end - $start" | bc)" "$packages" "$size" >> "$GITHUB_STEP_SUMMARY"
+          done

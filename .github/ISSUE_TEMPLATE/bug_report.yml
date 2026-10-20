@@ -1,0 +1,52 @@
+name: Bug report
+description: A finding that is wrong, a finding that is missing, or a crash.
+labels: [bug]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind
+      options:
+        - A finding was raised on correct Sigma (false positive)
+        - A problem was not reported (false negative)
+        - The tool crashed or failed to run
+        - A finding pointed at the wrong line
+        - Something else
+    validations:
+      required: true
+
+  - type: textarea
+    id: rule
+    attributes:
+      label: The rule
+      description: >
+        The smallest rule that shows it. This matters more than anything else
+        in this form: a false positive cannot be fixed without the content that
+        triggered it, and the fix needs to become a fixture.
+      render: yaml
+    validations:
+      required: true
+
+  - type: textarea
+    id: output
+    attributes:
+      label: What the tool printed
+      description: The output of `drg check` on that rule, and what you expected instead.
+      render: shell
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `drg --version`.
+    validations:
+      required: true
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Policy file
+      description: Your `.detection-rule-gate.yml`, if you have one.
+      render: yaml

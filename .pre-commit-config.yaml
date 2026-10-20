@@ -1,0 +1,36 @@
+# This repository's own hooks. The hook this project publishes for others is in
+# .pre-commit-hooks.yaml.
+repos:
+  - repo: local
+    hooks:
+      - id: ruff
+        name: ruff
+        entry: python -m ruff check --force-exclude
+        language: system
+        types_or: [python]
+
+      - id: no-dashes
+        name: no em or en dashes
+        entry: python tools/check_dashes.py
+        language: system
+        types_or: [python, markdown, yaml, toml]
+
+      - id: markdown-tables
+        name: markdown tables are well formed
+        entry: python tools/check_tables.py
+        language: system
+        types_or: [markdown]
+
+      - id: checks-doc
+        name: docs/checks.md matches the registry
+        entry: python tools/generate_checks_doc.py --check
+        language: system
+        pass_filenames: false
+        files: ^src/drg/checks/
+
+      - id: self-gate
+        name: gate this repository with itself
+        entry: python -m drg.cli check tests/fixtures --config .detection-rule-gate.yml
+        language: system
+        pass_filenames: false
+        files: ^tests/fixtures/

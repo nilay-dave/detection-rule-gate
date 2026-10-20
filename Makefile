@@ -22,6 +22,7 @@ verify: lint test selfcheck
 	$(PYTHON) tools/check_dashes.py
 	$(PYTHON) tools/check_tables.py
 	$(PYTHON) tools/check_dependencies.py
+	$(PYTHON) tools/check_numbers.py
 	$(PYTHON) tools/generate_checks_doc.py --check
 	$(PYTHON) scripts/provenance_check.py
 
