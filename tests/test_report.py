@@ -305,3 +305,28 @@ class TestJsonReport:
         document = self.document(clean())
         assert document["findings"] == []
         assert document["summary"]["suppressed"] == 1
+
+    def test_a_path_outside_the_base_is_not_rendered_as_a_traversal(self):
+        from drg.report import render_json
+
+        report = engine.Report(
+            findings=[
+                engine.Finding(
+                    check="broad-logsource",
+                    detail="x",
+                    severity=Severity.WARNING,
+                    file=Path("/elsewhere/rule.yml"),
+                    line=1,
+                )
+            ],
+            files_scanned=1,
+            rules_loaded=1,
+        )
+        document = json.loads(render_json(report, base=Path.cwd()))
+        assert document["findings"][0]["file"] == "/elsewhere/rule.yml"
+
+    def test_rendering_without_a_base_keeps_the_path_as_given(self):
+        from drg.report import render_json
+
+        document = json.loads(render_json(violations()))
+        assert all(entry["file"].startswith("tests/fixtures/") for entry in document["findings"])
