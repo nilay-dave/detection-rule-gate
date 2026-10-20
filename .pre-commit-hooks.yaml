@@ -1,0 +1,21 @@
+# The second distribution channel. The same checks run before a commit is
+# written, which is cheaper than finding out from CI: a runner minute, a push,
+# a context switch and a second review round, for a finding the author could
+# have seen in under a second.
+#
+# types_or rather than files, so the hook follows pre-commit's own idea of what
+# a YAML file is instead of a regular expression that has to be kept in step
+# with it.
+- id: detection-rule-gate
+  name: detection rule gate
+  description: Fail a commit when a Sigma rule is unmapped, unbounded or undocumented.
+  entry: drg check
+  language: python
+  types_or: [yaml]
+  # Only the staged rules are passed, so the hook stays fast on a large corpus.
+  # The duplicate identifier check has a corpus scope and cannot see a clash
+  # against a rule that is not staged, which is why CI runs the whole tree as
+  # well. docs/limitations.md records the consequence rather than leaving it to
+  # be discovered.
+  pass_filenames: true
+  require_serial: false

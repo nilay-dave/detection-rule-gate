@@ -1,0 +1,103 @@
+# A composite action rather than a Docker action. See
+# docs/adr/adr-001-dependency-budget.md for the reasoning.
+#
+# No third party action is used here, deliberately. Every `uses:` in a
+# composite action is code that runs with the caller's token, and keeping it at
+# a mutable tag is how a supply chain incident reaches a repository that never
+# changed anything. The alternative to pinning a SHA and rotating it forever is
+# not needing one: GitHub hosted runners ship Python, so this installs into the
+# runner's own interpreter and depends on nothing but pip.
+name: Detection Rule Gate
+description: Fail a detection-as-code pull request when a Sigma rule is unmapped, unbounded or undocumented.
+author: Nilay Dave
+
+branding:
+  icon: shield
+  color: blue
+
+inputs:
+  paths:
+    description: Space separated files or directories of Sigma rules to check.
+    required: false
+    default: rules
+  config:
+    description: Policy file. Defaults to the nearest .detection-rule-gate.yml.
+    required: false
+    default: ''
+  fail-on:
+    description: Fail the step at this severity or above. One of error, warning, notice, off.
+    required: false
+    default: ''
+  sarif:
+    description: Write a SARIF report to this path. Empty writes none.
+    required: false
+    default: ''
+  summary:
+    description: Append a markdown table to the job summary.
+    required: false
+    default: 'true'
+  python:
+    description: Interpreter to install into. Defaults to the runner's python3.
+    required: false
+    default: python3
+
+outputs:
+  exit-code:
+    description: 0 when nothing reached the failure threshold, 1 when something did.
+    value: ${{ steps.gate.outputs.exit-code }}
+  findings:
+    description: Total number of findings reported.
+    value: ${{ steps.gate.outputs.findings }}
+  sarif-path:
+    description: Path of the SARIF report, empty when none was requested.
+    value: ${{ steps.gate.outputs.sarif-path }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install the gate
+      shell: bash
+      run: |
+        set -euo pipefail
+        # Installed from the action's own checkout, not from PyPI, so the
+        # version that runs is the one the caller pinned this action to. A
+        # `pip install detection-rule-gate` here would silently upgrade the
+        # gate under a workflow pinned to a tag, and a new check appearing on
+        # its own is a build that breaks for no reason anyone can see.
+        "${{ inputs.python }}" -m pip install --quiet --disable-pip-version-check "$GITHUB_ACTION_PATH"
+
+    - name: Check rules
+      id: gate
+      shell: bash
+      run: |
+        set -uo pipefail
+        args=()
+        [[ -n "${{ inputs.config }}" ]] && args+=(--config "${{ inputs.config }}")
+        [[ -n "${{ inputs.fail-on }}" ]] && args+=(--fail-on "${{ inputs.fail-on }}")
+        [[ "${{ inputs.summary }}" == "true" ]] && args+=(--summary)
+        args+=(--base "$GITHUB_WORKSPACE" --format github)
+
+        # The exit code is captured rather than allowed to end the step, so the
+        # SARIF report and the outputs are still written when the gate fails.
+        # A gate that fails and leaves nothing behind for the security tab has
+        # told the team there is a problem and hidden what it was.
+        set +e
+        "${{ inputs.python }}" -m drg.cli check ${{ inputs.paths }} "${args[@]}" | tee /tmp/drg-report.txt
+        code=${PIPESTATUS[0]}
+        set -e
+
+        findings=$(grep -cE '^::(error|warning|notice) ' /tmp/drg-report.txt || true)
+        echo "exit-code=$code" >> "$GITHUB_OUTPUT"
+        echo "findings=$findings" >> "$GITHUB_OUTPUT"
+
+        if [[ -n "${{ inputs.sarif }}" ]]; then
+          "${{ inputs.python }}" -m drg.cli check ${{ inputs.paths }} \
+            --format sarif --base "$GITHUB_WORKSPACE" \
+            --repository "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+            --output "${{ inputs.sarif }}" || true
+          echo "sarif-path=${{ inputs.sarif }}" >> "$GITHUB_OUTPUT"
+        else
+          echo "sarif-path=" >> "$GITHUB_OUTPUT"
+        fi
+
+        exit "$code"
