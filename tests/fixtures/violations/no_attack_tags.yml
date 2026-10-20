@@ -1,0 +1,18 @@
+title: No Attack Tags At All
+id: 7c1d9b34-5e6f-4a28-b073-9d4c2e8f1b50
+status: test
+description: Has tags from another namespace only.
+author: Nilay Dave
+date: 2026-03-01
+tags:
+    - cve.2026-1234
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    selection:
+        Image|endswith: '\mshta.exe'
+    condition: selection
+falsepositives:
+    - Internal HTA tooling
+level: medium

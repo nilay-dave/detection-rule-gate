@@ -1,0 +1,17 @@
+title: Rule Without An Identifier
+status: test
+description: Cannot be tracked across a rename or cited in a ticket.
+author: Nilay Dave
+date: 2026-03-01
+tags:
+    - attack.t1082
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    selection:
+        Image|endswith: '\systeminfo.exe'
+    condition: selection
+falsepositives:
+    - Inventory tooling
+level: low

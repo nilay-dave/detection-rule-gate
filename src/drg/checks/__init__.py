@@ -11,6 +11,7 @@ from drg.checks import (  # noqa: F401
     identity,
     logsource,
     modifiers,
+    structural,
     wildcards,
 )
 from drg.checks.base import (
@@ -20,6 +21,7 @@ from drg.checks.base import (
     Severity,
     corpus_check,
     corpus_checks,
+    register_spec,
     registry,
     rule_check,
     rule_checks,
@@ -33,6 +35,7 @@ __all__ = [
     "Severity",
     "corpus_check",
     "corpus_checks",
+    "register_spec",
     "registry",
     "rule_check",
     "rule_checks",

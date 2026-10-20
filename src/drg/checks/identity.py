@@ -54,7 +54,7 @@ def missing_rule_id(rule: SigmaRule, located: Located, options: dict[str, Any]) 
 )
 def duplicate_rule_id(
     rules: Sequence[tuple[FsPath, SigmaRule, Located]], options: dict[str, Any]
-) -> Iterable[Issue]:
+) -> Iterable[tuple[FsPath, Issue]]:
     by_id: dict[str, list[FsPath]] = defaultdict(list)
     for path, rule, _ in rules:
         if rule.id and str(rule.id).strip():
@@ -67,4 +67,4 @@ def duplicate_rule_id(
         # looking at one of them needs to be told where the other is.
         for path in sorted(paths):
             others = ", ".join(str(other) for other in sorted(paths) if other != path)
-            yield Issue("duplicate-rule-id", f"id {identifier} is also used by {others}", ("id",))
+            yield path, Issue("duplicate-rule-id", f"id {identifier} is also used by {others}", ("id",))

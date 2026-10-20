@@ -1,0 +1,19 @@
+# drg:ignore unbounded_selection reason: typed with underscores, so it silences nothing
+title: Suppression Naming A Check That Does Not Exist
+id: 44444444-5555-6666-7777-888888888888
+status: test
+description: The check id is misspelled, so the rule looks silenced and the gate still fires.
+author: Nilay Dave
+date: 2026-03-01
+tags:
+    - attack.t1059.001
+logsource:
+    category: ps_module
+    product: windows
+detection:
+    selection:
+        ContextInfo|contains: '*'
+    condition: selection
+falsepositives:
+    - Every PowerShell module event
+level: medium

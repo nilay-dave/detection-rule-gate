@@ -1,0 +1,18 @@
+title: Misspelled Field Modifier
+id: 5e1b6c08-4f93-4a27-b5d1-8c0e3a7f2b64
+status: test
+description: endwith is not a modifier, so this rule converts and matches nothing.
+author: Nilay Dave
+date: 2026-03-01
+tags:
+    - attack.t1105
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    selection:
+        TargetFilename|endwith: '\payload.dll'
+    condition: selection
+falsepositives:
+    - None expected
+level: high

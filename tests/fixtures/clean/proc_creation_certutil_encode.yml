@@ -1,0 +1,24 @@
+title: File Encoded To Base64 Via Certutil
+id: 4e2e8d3b-41ba-4a5c-9b1d-2c5b9a1f0e77
+status: test
+description: Detects certutil invoked with the encode flag, which writes a base64 copy of a file.
+references:
+    - https://lolbas-project.github.io/lolbas/Binaries/Certutil/
+author: Nilay Dave
+date: 2026-01-14
+tags:
+    - attack.defense-evasion
+    - attack.t1027
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    selection_img:
+        - Image|endswith: '\certutil.exe'
+        - OriginalFileName: 'CertUtil.exe'
+    selection_cli:
+        CommandLine|contains: '-encode'
+    condition: all of selection_*
+falsepositives:
+    - Backup tooling that base64 encodes archives before upload
+level: medium

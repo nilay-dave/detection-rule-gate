@@ -1,0 +1,18 @@
+title: Tactic Tagged But No Technique
+id: 2a6f8e11-3c4b-4d7a-8e92-1f5b0c7d3a46
+status: test
+description: Carries a tactic tag and no technique, so no coverage matrix can place it.
+author: Nilay Dave
+date: 2026-03-01
+tags:
+    - attack.execution
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    selection:
+        Image|endswith: '\wscript.exe'
+    condition: selection
+falsepositives:
+    - Legacy login scripts
+level: medium

@@ -1,0 +1,18 @@
+title: The Copy Whose Id Was Never Changed
+id: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
+status: test
+description: Copied from first.yml, with the identifier left as it was.
+author: Nilay Dave
+date: 2026-03-02
+tags:
+    - attack.t1059
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    selection:
+        Image|endswith: '\powershell.exe'
+    condition: selection
+falsepositives:
+    - Interactive administration
+level: low

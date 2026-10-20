@@ -1,0 +1,20 @@
+title: Two Selections With One Name
+id: 1d8e5b92-6c40-4f17-a83b-2e9c7d1a5f68
+status: test
+description: safe_load keeps the second selection and discards the first in silence.
+author: Nilay Dave
+date: 2026-03-01
+tags:
+    - attack.t1486
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    selection:
+        Image|endswith: '\vssadmin.exe'
+    selection:
+        CommandLine|contains: 'delete shadows'
+    condition: selection
+falsepositives:
+    - Backup maintenance windows
+level: high

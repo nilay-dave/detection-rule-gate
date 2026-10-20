@@ -1,0 +1,24 @@
+title: Outbound Connection On An Uncommon High Port
+id: 1b7c9f52-8a3d-4e61-93aa-5f0c7d2e4b18
+status: experimental
+description: Detects an outbound connection to a port outside the range this estate normally uses.
+references:
+    - https://attack.mitre.org/techniques/T1571/
+author: Nilay Dave
+date: 2026-02-02
+tags:
+    - attack.command-and-control
+    - attack.t1571
+logsource:
+    category: network_connection
+    product: windows
+detection:
+    selection:
+        Initiated: 'true'
+        DestinationPort|gte: 49152
+    filter_known_backup:
+        DestinationPort: 50051
+    condition: selection and not filter_known_backup
+falsepositives:
+    - Ephemeral source ports on a misconfigured appliance
+level: low

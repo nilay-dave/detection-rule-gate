@@ -1,0 +1,26 @@
+# This rule is deliberately broad: it reports every PowerShell host that is not
+# on the allowlist below, which is the only way to catch an unknown host.
+# drg:ignore unbounded-selection reason: allowlist detection, breadth is the design, reviewed 2026-02
+title: PowerShell Host Outside The Allowlist
+id: 9d4a1c60-7b2e-4f83-a15d-6c8e0b3f2a94
+status: test
+description: Detects a PowerShell module log event from a host process that is not on the allowlist.
+references:
+    - https://attack.mitre.org/techniques/T1059/001/
+author: Nilay Dave
+date: 2026-02-10
+tags:
+    - attack.execution
+    - attack.t1059.001
+logsource:
+    product: windows
+    category: ps_module
+detection:
+    selection:
+        ContextInfo|contains: '*'
+    filter_powershell:
+        ContextInfo|contains: '\powershell.exe'
+    condition: selection and not filter_powershell
+falsepositives:
+    - A new signed host process introduced by a platform upgrade
+level: medium

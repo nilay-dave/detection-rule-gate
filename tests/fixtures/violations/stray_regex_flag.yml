@@ -1,0 +1,18 @@
+title: Regex Flag Without A Preceding Re
+id: 9f4d2a76-0e51-4b38-8c6a-1d7b5e2f9c03
+status: test
+description: The i flag is a sub modifier of re and is not valid on its own.
+author: Nilay Dave
+date: 2026-03-01
+tags:
+    - attack.t1027
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    selection:
+        CommandLine|i: 'whoami'
+    condition: selection
+falsepositives:
+    - None expected
+level: high

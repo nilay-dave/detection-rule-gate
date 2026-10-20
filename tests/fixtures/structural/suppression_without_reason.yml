@@ -1,0 +1,19 @@
+# drg:ignore missing-falsepositives
+title: Suppression With No Reason
+id: 33333333-4444-5555-6666-777777777777
+status: test
+description: Silences a finding without recording why.
+author: Nilay Dave
+date: 2026-03-01
+tags:
+    - attack.t1003
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    selection:
+        Image|endswith: '\procdump.exe'
+    condition: selection
+falsepositives:
+    - Unknown
+level: high

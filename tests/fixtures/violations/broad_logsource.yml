@@ -1,0 +1,17 @@
+title: Log Source Names A Product Only
+id: 4b9d7e26-1a38-4c95-8e07-3d6b2f8a1c59
+status: test
+description: Evaluates against every event the product emits rather than one channel.
+author: Nilay Dave
+date: 2026-03-01
+tags:
+    - attack.t1055
+logsource:
+    product: windows
+detection:
+    selection:
+        EventID: 4688
+    condition: selection
+falsepositives:
+    - Every process creation on the estate
+level: medium

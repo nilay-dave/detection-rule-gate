@@ -91,7 +91,13 @@ class CheckSpec:
 # signature anyway, which keeps the registry from needing two shapes of
 # callable to accommodate the one check that genuinely has a knob.
 RuleCheckFn = Callable[[SigmaRule, Located, dict[str, Any]], Iterable[Issue]]
-CorpusCheckFn = Callable[[Sequence[tuple[FsPath, SigmaRule, Located]], dict[str, Any]], Iterable[Issue]]
+# A corpus check names the file each issue belongs to, because it is looking at
+# many files at once and the engine has no way to infer which one an issue came
+# from. An earlier version recovered the path by splitting the message text,
+# which worked until a message was reworded.
+CorpusCheckFn = Callable[
+    [Sequence[tuple[FsPath, SigmaRule, Located]], dict[str, Any]], Iterable[tuple[FsPath, Issue]]
+]
 
 _SPECS: dict[str, CheckSpec] = {}
 _RULE_CHECKS: dict[str, RuleCheckFn] = {}
@@ -130,6 +136,18 @@ def corpus_check(
         return function
 
     return register
+
+
+def register_spec(entry: CheckSpec) -> None:
+    """Register a spec with no callable behind it.
+
+    Used by the structural findings, which the loader raises directly rather
+    than any check producing them, and which still need an entry so the
+    reporters and the documentation table have no special case.
+    """
+    if entry.id in _SPECS:
+        raise RuntimeError(f"check id {entry.id!r} is registered twice")
+    _SPECS[entry.id] = entry
 
 
 def spec(check_id: str) -> CheckSpec:
