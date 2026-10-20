@@ -1,0 +1,25 @@
+# This repository's own policy, which is also the worked example.
+#
+# Every check is on at its registered default unless it appears here. Run
+# `drg checks --config .detection-rule-gate.yml` to see what that resolves to,
+# and `drg explain <check>` for why any of them exist.
+
+fail_on: error
+
+checks:
+  # Raised here, because this repository's own fixtures are expected to be
+  # exemplary and there are twelve of them rather than 3,799. The default is a
+  # warning for a reason: on the public corpus this fires on 25% of rules, and
+  # a gate that fails a build on a quarter of a team's content gets removed.
+  missing-falsepositives: error
+
+  # Same reasoning. Every fixture here is mapped.
+  attack-technique-missing: error
+
+exclude:
+  # The violation fixtures exist to fail. They are checked by the test suite,
+  # which asserts exactly which findings each one raises, rather than by the
+  # gate, which would only ever report that they are broken.
+  - 'tests/fixtures/violations/**'
+  - 'tests/fixtures/structural/**'
+  - 'tests/fixtures/duplicate_ids/**'

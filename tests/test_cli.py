@@ -7,31 +7,39 @@ from drg.cli import main
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
+# Most of these exercise the default policy, so they pass --no-config. Without
+# it the CLI discovers this repository's own .detection-rule-gate.yml by walking
+# up from the target, and the test would be asserting against whatever that file
+# happens to say. One of these did exactly that until the repository gained a
+# policy of its own and the test started failing for a reason that had nothing
+# to do with what it was testing.
+NO_CONFIG = "--no-config"
+
 
 def test_clean_rules_exit_zero(capsys):
-    assert main(["check", str(FIXTURES / "clean")]) == 0
+    assert main(["check", str(FIXTURES / "clean"), NO_CONFIG]) == 0
     assert "no findings" in capsys.readouterr().out
 
 
 def test_errors_exit_one(capsys):
-    assert main(["check", str(FIXTURES / "violations")]) == 1
+    assert main(["check", str(FIXTURES / "violations"), NO_CONFIG]) == 1
     assert "condition-unparseable" in capsys.readouterr().out
 
 
 def test_fail_on_off_exits_zero_with_findings(capsys):
-    assert main(["check", str(FIXTURES / "violations"), "--fail-on", "off"]) == 0
+    assert main(["check", str(FIXTURES / "violations"), NO_CONFIG, "--fail-on", "off"]) == 0
     assert "failing on: nothing" in capsys.readouterr().out
 
 
 def test_fail_on_warning_catches_warnings(capsys):
     target = str(FIXTURES / "violations" / "tactic_only.yml")
-    assert main(["check", target]) == 0
-    assert main(["check", target, "--fail-on", "warning"]) == 1
+    assert main(["check", target, NO_CONFIG]) == 0
+    assert main(["check", target, NO_CONFIG, "--fail-on", "warning"]) == 1
     capsys.readouterr()
 
 
 def test_format_github_emits_annotations(capsys):
-    main(["check", str(FIXTURES / "violations"), "--format", "github", "--base", str(Path.cwd())])
+    main(["check", str(FIXTURES / "violations"), NO_CONFIG, "--format", "github", "--base", str(Path.cwd())])
     out = capsys.readouterr().out
     assert "::error file=tests/fixtures/" in out
     # The text report follows, because an annotation only shows on a touched line.
@@ -40,19 +48,19 @@ def test_format_github_emits_annotations(capsys):
 
 def test_format_auto_picks_github_inside_actions(capsys, monkeypatch):
     monkeypatch.setenv("GITHUB_ACTIONS", "true")
-    main(["check", str(FIXTURES / "violations"), "--base", str(Path.cwd())])
+    main(["check", str(FIXTURES / "violations"), NO_CONFIG, "--base", str(Path.cwd())])
     assert "::error file=" in capsys.readouterr().out
 
 
 def test_format_auto_picks_text_outside_actions(capsys, monkeypatch):
     monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
-    main(["check", str(FIXTURES / "violations")])
+    main(["check", str(FIXTURES / "violations"), NO_CONFIG])
     assert "::error file=" not in capsys.readouterr().out
 
 
 def test_sarif_output_to_a_file(tmp_path, capsys):
     destination = tmp_path / "nested" / "out.sarif"
-    main(["check", str(FIXTURES / "violations"), "--format", "sarif", "--output", str(destination)])
+    main(["check", str(FIXTURES / "violations"), NO_CONFIG, "--format", "sarif", "--output", str(destination)])
     capsys.readouterr()
     assert destination.is_file()
     assert json.loads(destination.read_text(encoding="utf-8"))["version"] == "2.1.0"
@@ -61,14 +69,14 @@ def test_sarif_output_to_a_file(tmp_path, capsys):
 def test_summary_appends_to_the_step_summary_file(tmp_path, capsys, monkeypatch):
     summary = tmp_path / "summary.md"
     monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
-    main(["check", str(FIXTURES / "violations"), "--summary", "--format", "text"])
+    main(["check", str(FIXTURES / "violations"), NO_CONFIG, "--summary", "--format", "text"])
     capsys.readouterr()
     assert "## Detection rule gate" in summary.read_text(encoding="utf-8")
 
 
 def test_summary_without_the_environment_variable_says_so(capsys, monkeypatch):
     monkeypatch.delenv("GITHUB_STEP_SUMMARY", raising=False)
-    main(["check", str(FIXTURES / "clean"), "--summary"])
+    main(["check", str(FIXTURES / "clean"), NO_CONFIG, "--summary"])
     assert "GITHUB_STEP_SUMMARY is not set" in capsys.readouterr().err
 
 
@@ -169,3 +177,26 @@ def test_no_command_exits_two():
     with pytest.raises(SystemExit) as caught:
         main([])
     assert caught.value.code == 2
+
+
+def test_excludes_behave_the_same_for_relative_and_absolute_paths(tmp_path, capsys):
+    """Patterns are anchored to the policy file's directory.
+
+    Before that they were matched against the path as given, so an exclude
+    worked for a relative invocation and silently did nothing for an absolute
+    one. Same tree, same config, different answer, no warning.
+    """
+    rules = tmp_path / "deprecated"
+    rules.mkdir()
+    (rules / "old.yml").write_text(
+        (FIXTURES / "violations" / "tactic_only.yml").read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    config = tmp_path / ".detection-rule-gate.yml"
+    config.write_text("exclude:\n  - 'deprecated/**'\n", encoding="utf-8")
+
+    main(["check", str(rules), "--config", str(config)])
+    absolute = capsys.readouterr().out
+    main(["check", str(rules.resolve()), "--config", str(config)])
+    resolved = capsys.readouterr().out
+    assert "0 rules in 0 files" in absolute
+    assert absolute == resolved

@@ -99,6 +99,7 @@ def test_the_annotation_count_expression_matches_the_real_output(tmp_path):
             "drg.cli",
             "check",
             str(FIXTURES / "violations"),
+            "--no-config",
             "--format",
             "github",
             "--base",
@@ -122,7 +123,7 @@ def test_the_annotation_count_expression_matches_the_real_output(tmp_path):
 
 def test_the_action_fails_the_step_when_the_gate_fails():
     completed = subprocess.run(
-        [sys.executable, "-m", "drg.cli", "check", str(FIXTURES / "violations"), "--format", "github"],
+        [sys.executable, "-m", "drg.cli", "check", str(FIXTURES / "violations"), "--no-config", "--format", "github"],
         capture_output=True,
         text=True,
         check=False,

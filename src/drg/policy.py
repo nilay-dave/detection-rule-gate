@@ -74,8 +74,25 @@ class Policy:
         return self.options.get(check_id, {})
 
     def excludes(self, path: Path) -> bool:
-        text = path.as_posix()
-        return any(fnmatch(text, pattern) or fnmatch(path.name, pattern) for pattern in self.exclude)
+        """Whether ``path`` is excluded by this policy.
+
+        Patterns are anchored to the directory holding the policy file, the way
+        a .gitignore is. Before that, they were matched against the path as
+        given, which meant `exclude: ['deprecated/**']` worked when the tool was
+        run with a relative path and silently did nothing when it was run with
+        an absolute one. Same tree, same config, different answer, no warning,
+        which is the exact failure the rest of this loader exists to prevent.
+        """
+        candidates = [path.as_posix(), path.name]
+        root = self.source.parent if self.source else None
+        if root is not None:
+            try:
+                candidates.append(path.resolve().relative_to(root.resolve()).as_posix())
+            except (ValueError, OSError):
+                # Outside the policy file's tree, so only the path as given and
+                # the bare name can match.
+                pass
+        return any(fnmatch(text, pattern) for text in candidates for pattern in self.exclude)
 
 
 def default_policy() -> Policy:

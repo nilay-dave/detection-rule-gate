@@ -5,7 +5,7 @@
 # Override with: make verify PYTHON=python3.12
 PYTHON ?= python3
 
-.PHONY: install verify test lint corpus bench selfcheck clean
+.PHONY: install verify test lint corpus bench selfcheck docs clean
 
 install:
 	$(PYTHON) -m pip install -e ".[dev]"
@@ -18,9 +18,11 @@ test:
 
 # Runs every check CI runs, in the same order, so a green local verify means a
 # green build. A verify that is a subset of CI is a verify that lies.
-verify: lint test
+verify: lint test selfcheck
 	$(PYTHON) tools/check_dashes.py
+	$(PYTHON) tools/check_tables.py
 	$(PYTHON) tools/check_dependencies.py
+	$(PYTHON) tools/generate_checks_doc.py --check
 	$(PYTHON) scripts/provenance_check.py
 
 # Fetches the public Sigma corpus at the commit pinned in tools/fetch_corpus.py.
@@ -34,7 +36,10 @@ bench: corpus
 # The gate run against this repository's own fixtures. A linter that cannot be
 # pointed at a directory and produce a stable exit code is not a gate.
 selfcheck:
-	$(PYTHON) -m drg.cli check tests/fixtures/clean --fail-on error
+	$(PYTHON) -m drg.cli check tests/fixtures --config .detection-rule-gate.yml
+
+docs:
+	$(PYTHON) tools/generate_checks_doc.py
 
 clean:
 	rm -rf .pytest_cache .ruff_cache htmlcov coverage.xml .coverage build dist

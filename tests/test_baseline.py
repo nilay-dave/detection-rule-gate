@@ -128,7 +128,7 @@ def test_baseline_total_is_the_sum_of_counts():
 
 def test_the_baseline_command_writes_a_file(tmp_path, capsys):
     out = tmp_path / "nested" / "bl.json"
-    assert main(["baseline", str(FIXTURES / "violations"), "--out", str(out)]) == 0
+    assert main(["baseline", str(FIXTURES / "violations"), "--out", str(out), "--no-config"]) == 0
     assert "recorded 12 finding(s)" in capsys.readouterr().out
     assert json.loads(out.read_text(encoding="utf-8"))["total"] == 12
 
@@ -144,9 +144,9 @@ def test_the_baseline_command_respects_the_policy(tmp_path, capsys):
 
 def test_check_with_a_baseline_passes_and_reports_the_count(tmp_path, capsys):
     out = tmp_path / "bl.json"
-    main(["baseline", str(FIXTURES / "violations"), "--out", str(out), "--base", str(Path.cwd())])
+    main(["baseline", str(FIXTURES / "violations"), "--out", str(out), "--base", str(Path.cwd()), "--no-config"])
     capsys.readouterr()
-    assert main(["check", str(FIXTURES / "violations"), "--baseline", str(out), "--base", str(Path.cwd())]) == 0
+    assert main(["check", str(FIXTURES / "violations"), "--baseline", str(out), "--base", str(Path.cwd()), "--no-config"]) == 0
     captured = capsys.readouterr()
     assert "no findings" in captured.out
     assert "12 known finding(s)" in captured.err
@@ -154,16 +154,16 @@ def test_check_with_a_baseline_passes_and_reports_the_count(tmp_path, capsys):
 
 def test_check_reports_when_the_baseline_can_shrink(tmp_path, capsys):
     out = tmp_path / "bl.json"
-    main(["baseline", str(FIXTURES / "violations"), "--out", str(out), "--base", str(Path.cwd())])
+    main(["baseline", str(FIXTURES / "violations"), "--out", str(out), "--base", str(Path.cwd()), "--no-config"])
     capsys.readouterr()
-    main(["check", str(FIXTURES / "clean"), "--baseline", str(out), "--base", str(Path.cwd())])
+    main(["check", str(FIXTURES / "clean"), "--baseline", str(out), "--base", str(Path.cwd()), "--no-config"])
     assert "no longer reported, so the baseline can shrink" in capsys.readouterr().err
 
 
 def test_a_broken_baseline_exits_two_with_a_message(tmp_path, capsys):
     path = tmp_path / "bl.json"
     path.write_text("{}", encoding="utf-8")
-    assert main(["check", str(FIXTURES / "clean"), "--baseline", str(path)]) == 2
+    assert main(["check", str(FIXTURES / "clean"), "--baseline", str(path), "--no-config"]) == 2
     assert "baseline error" in capsys.readouterr().err
 
 
