@@ -57,6 +57,16 @@ def _uri(path: Path, base: Path | None) -> str:
     return PurePosixPath(path).as_posix().lstrip("/")
 
 
+def fingerprint_of(finding, base: Path | None = None) -> str:
+    """The fingerprint of a finding, as the baseline and SARIF both use it.
+
+    One function rather than two, because a baseline keyed differently from the
+    SARIF fingerprint would recognise a moved finding in one place and not the
+    other, and nothing would say so.
+    """
+    return _fingerprint(finding.check, _uri(finding.file, base), finding.detail)
+
+
 def _fingerprint(check: str, uri: str, detail: str) -> str:
     """A stable identity for one finding.
 

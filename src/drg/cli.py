@@ -5,10 +5,12 @@ docs/adr/adr-001-dependency-budget.md. Short version: this runs on every pull
 request, every dependency is a download and a supply chain edge on every run,
 and nothing here needs more than the standard library provides.
 
-Three commands. ``check`` is the gate. ``checks`` lists what the gate enforces
+Four commands. ``check`` is the gate. ``checks`` lists what the gate enforces
 and at what severity, so a team can read the policy without reading the source.
 ``explain`` prints why one check exists, which is the question someone asks
-when a gate has just blocked their pull request.
+when a gate has just blocked their pull request. ``baseline`` records what is
+already wrong, so a team with a large corpus can adopt the gate without fixing
+everything first.
 """
 
 from __future__ import annotations
@@ -19,6 +21,10 @@ import sys
 from pathlib import Path
 
 from drg import __version__
+from drg.baseline import FILENAME, BaselineError
+from drg.baseline import apply as apply_baseline
+from drg.baseline import load as load_baseline
+from drg.baseline import record as record_baseline
 from drg.checks import Severity, registry
 from drg.engine import run
 from drg.policy import PolicyError, default_policy, discover, load
@@ -59,6 +65,10 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="append a markdown summary to the file named by GITHUB_STEP_SUMMARY",
     )
+    # Deliberately not discovered the way a policy file is. A baseline hides
+    # findings, and something that hides findings because a file happened to be
+    # on disk is the kind of surprise that ends with nobody trusting the gate.
+    check.add_argument("--baseline", type=Path, help="treat findings in this file as known (see 'drg baseline')")
 
     listing = subparsers.add_parser("checks", help="list every check, its severity and its scope")
     listing.add_argument("--config", type=Path, help="show the severities this policy file resolves to")
@@ -66,6 +76,15 @@ def _parser() -> argparse.ArgumentParser:
 
     explain = subparsers.add_parser("explain", help="print why one check exists")
     explain.add_argument("check", help="the check id")
+
+    baseline = subparsers.add_parser(
+        "baseline", help="record the findings a repository already has, so new ones can be told apart"
+    )
+    baseline.add_argument("paths", nargs="+", type=Path, help="files or directories of Sigma rules")
+    baseline.add_argument("--out", type=Path, default=Path(FILENAME), help=f"where to write it (default: {FILENAME})")
+    baseline.add_argument("--config", type=Path, help="policy file, so the baseline matches the policy in force")
+    baseline.add_argument("--no-config", action="store_true", help="ignore any policy file and use the defaults")
+    baseline.add_argument("--base", type=Path, help="repository root, so the recorded paths are relative")
 
     return parser
 
@@ -82,6 +101,13 @@ def _command_check(args: argparse.Namespace) -> int:
     policy = _resolve_policy(args, args.paths[0])
     fail_on = Severity(args.fail_on) if args.fail_on else policy.fail_on
     report = run(args.paths, policy)
+
+    known = 0
+    fixed = 0
+    if args.baseline:
+        applied = apply_baseline(load_baseline(args.baseline), report.findings, args.base or Path.cwd())
+        known, fixed = applied.baselined, applied.fixed
+        report.findings = applied.new
 
     chosen = args.format
     if chosen == "auto":
@@ -107,6 +133,12 @@ def _command_check(args: argparse.Namespace) -> int:
     else:
         print(rendered, end="" if rendered.endswith("\n") else "\n")
 
+    if known or fixed:
+        parts = [f"{known} known finding(s) from {args.baseline}"]
+        if fixed:
+            parts.append(f"{fixed} recorded finding(s) no longer reported, so the baseline can shrink")
+        print("; ".join(parts), file=sys.stderr)
+
     if args.summary:
         destination = os.environ.get("GITHUB_STEP_SUMMARY")
         if destination:
@@ -128,6 +160,17 @@ def _command_checks(args: argparse.Namespace) -> int:
         print(f"{check_id:<{widest}}  {severity.value:<8}  {entry.scope}")
         if args.rationale:
             print(f"{'':<{widest}}  {entry.rationale}")
+    return 0
+
+
+def _command_baseline(args: argparse.Namespace) -> int:
+    policy = _resolve_policy(args, args.paths[0])
+    report = run(args.paths, policy)
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text(record_baseline(report.findings, args.base or Path.cwd()), encoding="utf-8")
+    print(f"recorded {len(report.findings)} finding(s) from {report.rules_loaded} rules in {args.out}")
+    if report.findings:
+        print("New findings will fail; these will be reported as a count. Pass --baseline to use it.")
     return 0
 
 
@@ -159,9 +202,14 @@ def main(argv: list[str] | None = None) -> int:
             return _command_check(args)
         if args.command == "checks":
             return _command_checks(args)
+        if args.command == "baseline":
+            return _command_baseline(args)
         return _command_explain(args)
     except PolicyError as exc:
         print(f"policy error: {exc}", file=sys.stderr)
+        return 2
+    except BaselineError as exc:
+        print(f"baseline error: {exc}", file=sys.stderr)
         return 2
     except FileNotFoundError as exc:
         print(f"{exc.filename}: no such file or directory", file=sys.stderr)
