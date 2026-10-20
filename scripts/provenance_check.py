@@ -53,10 +53,35 @@ class Report:
         return 1 if counts[FAIL] else 0
 
 
+def source_lines() -> int:
+    """Lines of tracked source, excluding documentation and test fixtures."""
+    total = 0
+    for name in git("ls-files", "src", "tests", "tools", "scripts", "benchmark").splitlines():
+        if not name or "fixtures" in name:
+            continue
+        path = ROOT / name
+        if path.suffix not in {".py", ".sh"} or not path.is_file():
+            continue
+        total += len(path.read_text(encoding="utf-8", errors="replace").splitlines())
+    return total
+
+
 def check_history(report: Report) -> None:
     count = int(git("rev-list", "--count", "HEAD") or 0)
-    verdict = PASS if count >= 40 else WEAK if count >= 20 else FAIL
-    report.add("commit count", verdict, f"{count} commits on HEAD, 40 or more expected for this size")
+    # The threshold was a flat 40 while the message claimed it was "for this
+    # size", which measured nothing. What this signal is really a proxy for is
+    # whether the work arrived incrementally or as a dump, so it is now scaled
+    # against the amount of source: roughly one commit per 75 lines is the
+    # shape of sustained, reviewable development. Floored at 20 so a genuinely
+    # small tool is not asked for ceremony it does not need.
+    lines = source_lines()
+    expected = max(20, round(lines / 75))
+    verdict = PASS if count >= expected else WEAK if count >= expected * 0.6 else FAIL
+    report.add(
+        "commit count",
+        verdict,
+        f"{count} commits on HEAD for {lines} lines of source, {expected} or more expected at one per 75 lines",
+    )
 
     # Merge commits are excluded. Conventional Commits does not cover them, git
     # generates their subject, and requiring "feat(x): merge" would be cargo
