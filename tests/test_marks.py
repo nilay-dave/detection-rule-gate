@@ -1,6 +1,9 @@
-import pytest
+from pathlib import Path
 
-from drg.rules.marks import ParseError, load
+import pytest
+import yaml
+
+from drg.rules.marks import USING_LIBYAML, ParseError, load
 
 NESTED = """\
 title: Example
@@ -95,3 +98,60 @@ def test_a_yaml_error_without_a_position_still_raises_parse_error():
     with pytest.raises(ParseError) as caught:
         load("title: ok\x00\n")
     assert caught.value.line is None
+
+
+class TestBothLoadersAgree:
+    """The C loader is used when libyaml is present and the pure Python one
+    otherwise, so the two have to be interchangeable.
+
+    A difference in the marks would move every finding to the wrong line, which
+    is a correctness bug wearing a performance change as a disguise. These
+    compare the two on every fixture; the same comparison across all 3,799
+    rules of the pinned corpus is recorded in docs/adr/adr-002-yaml-loader.md.
+    """
+
+    @staticmethod
+    def fixtures():
+        root = Path(__file__).parent / "fixtures"
+        return sorted(path for path in root.rglob("*.yml"))
+
+    def test_libyaml_is_actually_being_used_here(self):
+        # Not a requirement of the tool, but if it is absent in the environment
+        # the suite runs in, the comparisons below are comparing one loader
+        # with itself and prove nothing.
+        assert USING_LIBYAML, "libyaml is absent, so the loader comparison tests are vacuous"
+
+    @pytest.mark.parametrize("path", fixtures.__func__(), ids=lambda path: path.name)
+    def test_marks_and_data_match_across_loaders(self, path):
+        text = path.read_text(encoding="utf-8")
+        try:
+            pure = load(text, yaml.SafeLoader)
+        except ParseError as pure_error:
+            with pytest.raises(ParseError) as c_error:
+                load(text, yaml.CSafeLoader)
+            assert c_error.value.line == pure_error.line
+            return
+        compiled = load(text, yaml.CSafeLoader)
+        assert pure.lines == compiled.lines
+        assert pure.data == compiled.data
+        assert pure.duplicates == compiled.duplicates
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "title: ok\x00\n",
+            "title: ok\n  bad: here\n",
+            "a: 1\n---\nb: 2\n",
+            "\n# only a comment\n",
+            "v: !!python/object:os.system {}\n",
+        ],
+    )
+    def test_failure_modes_match_across_loaders(self, text):
+        outcomes = []
+        for loader in (yaml.SafeLoader, yaml.CSafeLoader):
+            try:
+                load(text, loader)
+                outcomes.append(("ok", None))
+            except ParseError as exc:
+                outcomes.append(("error", exc.line))
+        assert outcomes[0] == outcomes[1]

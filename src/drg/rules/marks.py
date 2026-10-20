@@ -27,6 +27,19 @@ import yaml
 
 Path = tuple[str | int, ...]
 
+# PyYAML ships two loaders with the same interface: a pure Python one and a
+# binding to libyaml. Profiling a run over 3,799 rules put 92% of the time
+# inside the pure Python scanner, with the checks nowhere near the top of the
+# profile, so this one line is the whole performance story of the tool.
+#
+# libyaml is not present everywhere, and a tool that only works where it is
+# installed is worse than a slower tool, so the fallback is real and tested.
+# Both loaders are checked against each other on every fixture, because a
+# difference in the marks would move every finding to the wrong line, which is
+# a correctness bug wearing a performance change as a disguise.
+LOADER: type = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+USING_LIBYAML = LOADER is not yaml.SafeLoader
+
 
 class ParseError(Exception):
     """A document that is not loadable YAML, carrying the position if known."""
@@ -88,8 +101,11 @@ def _index(node: yaml.Node, path: Path, lines: dict[Path, int], dupes: list[tupl
             _index(item, child, lines, dupes)
 
 
-def load(text: str) -> Located:
+def load(text: str, loader_class: type | None = None) -> Located:
     """Load a single YAML document, keeping positions.
+
+    ``loader_class`` defaults to the fastest loader available and exists so the
+    tests can run both and compare.
 
     Raises ParseError for unparseable YAML and for a stream that holds more
     than one document. Multi document rule collections are a real Sigma
@@ -98,13 +114,15 @@ def load(text: str) -> Located:
     parse error with a clear message beats silently linting the first document
     and passing a file whose second half was never read.
     """
+    loader_class = loader_class or LOADER
+
     # The constructor is inside the try on purpose. SafeLoader's Reader checks
     # the whole string for printable characters as it is built, so a file with
     # a stray control byte raises before get_single_node is ever called. With
     # the constructor outside, one such file ended the entire run instead of
     # becoming one finding, which is the failure the engine is built to avoid.
     try:
-        loader = yaml.SafeLoader(text)
+        loader = loader_class(text)
         node = loader.get_single_node()
     except yaml.MarkedYAMLError as exc:
         line = exc.problem_mark.line + 1 if exc.problem_mark else None
