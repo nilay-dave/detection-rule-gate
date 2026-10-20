@@ -6,8 +6,11 @@
 from drg.checks import (  # noqa: F401
     attack,
     conditions,
+    duplicates,
     falsepositives,
+    identity,
     logsource,
+    modifiers,
     wildcards,
 )
 from drg.checks.base import (
