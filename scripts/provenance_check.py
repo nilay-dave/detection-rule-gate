@@ -176,7 +176,11 @@ def check_badges(report: Report) -> None:
 
 def check_numbers(report: Report) -> None:
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    tagged = re.findall(r"<!--number:([a-zA-Z0-9_.\[\]]+)-->", readme)
+    # Hyphens allowed, because a metric path keyed by check id contains them
+    # and every check id in this project is hyphenated. The pattern here and
+    # the one in tools/check_numbers.py had the same gap, and this audit
+    # reported 4 tagged numbers where there were 14.
+    tagged = re.findall(r"<!--number:([a-zA-Z0-9_.\-\[\]]+)-->", readme)
     report.add(
         "published numbers are checked",
         PASS if len(tagged) >= 10 else WEAK if tagged else FAIL,

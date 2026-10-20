@@ -1,14 +1,14 @@
 # The language bar should describe what this project is, not be tuned until it
 # flatters. Python is the tool; YAML is the action, the hook and the workflows,
 # which are a real part of what this repository ships and stay counted.
-#
-# What is excluded is documentation and test data, which is what Linguist's
-# categories are for.
 *.md linguist-documentation
 docs/** linguist-documentation
-
-# Fixtures are Sigma rules written to be wrong in one specific way. They are
-# inputs to the tests, not YAML this project maintains as content.
-tests/fixtures/** linguist-vendored
-
 *.sarif linguist-generated
+
+# The fixtures are the one place an explicit decision is needed. They are Sigma
+# rules I wrote to be wrong in one specific way each: inputs to the tests
+# rather than content this project maintains. Linguist has no Sigma, so left
+# alone they would read as a tenth of this repository being YAML written by its
+# author. Marked not detectable rather than vendored, because vendored would
+# claim they came from somewhere else and they did not.
+tests/fixtures/** linguist-detectable=false
