@@ -86,3 +86,12 @@ def test_multi_document_stream_raises_rather_than_linting_the_first():
 def test_unresolvable_tag_raises_parse_error():
     with pytest.raises(ParseError):
         load("value: !!python/object:os.system {}\n")
+
+
+def test_a_yaml_error_without_a_position_still_raises_parse_error():
+    """A reader error has no problem_mark, so the line is unknown rather than
+    wrong. Reporting line 1 for a file whose byte 4000 is bad would send a
+    reviewer to the wrong place."""
+    with pytest.raises(ParseError) as caught:
+        load("title: ok\x00\n")
+    assert caught.value.line is None

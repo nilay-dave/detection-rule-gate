@@ -86,7 +86,7 @@ def _rules(repository: str | None) -> list[dict]:
     return rules
 
 
-def sarif(report: Report, *, base: Path | None = None, repository: str | None = None) -> str:
+def render(report: Report, *, base: Path | None = None, repository: str | None = None) -> str:
     """Render the report as a SARIF 2.1.0 log."""
     results = []
     for finding in report.findings:

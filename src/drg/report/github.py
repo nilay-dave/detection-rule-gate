@@ -28,7 +28,7 @@ def _escape_property(value: str) -> str:
     return _escape_data(value).replace(":", "%3A").replace(",", "%2C")
 
 
-def annotations(report: Report, *, base: str | None = None) -> Iterable[str]:
+def render_annotations(report: Report, *, base: str | None = None) -> Iterable[str]:
     """One workflow command per finding."""
     for finding in report.findings:
         command = COMMAND.get(finding.severity)
@@ -49,7 +49,7 @@ def _relative(path: str, base: str | None) -> str:
     return path.lstrip("/")
 
 
-def job_summary(report: Report, *, fail_on: Severity = Severity.ERROR, base: str | None = None) -> str:
+def render_job_summary(report: Report, *, fail_on: Severity = Severity.ERROR, base: str | None = None) -> str:
     """A markdown summary for the run page."""
     lines = ["## Detection rule gate", ""]
     if not report.findings:

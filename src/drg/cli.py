@@ -22,7 +22,7 @@ from drg import __version__
 from drg.checks import Severity, registry
 from drg.engine import run
 from drg.policy import PolicyError, default_policy, discover, load
-from drg.report import annotations, job_summary, sarif, text
+from drg.report import render_annotations, render_job_summary, render_sarif, render_text
 
 FORMATS = ("auto", "text", "github", "sarif")
 
@@ -89,15 +89,16 @@ def _command_check(args: argparse.Namespace) -> int:
 
     base = args.base
     if chosen == "sarif":
-        rendered = sarif(report, base=base or Path.cwd(), repository=args.repository)
+        rendered = render_sarif(report, base=base or Path.cwd(), repository=args.repository)
     elif chosen == "github":
         # Annotations land on the diff; the text report goes to the log, because
         # an annotation only shows on a line that the pull request touched and
         # a reviewer still needs the whole list.
-        rendered = "\n".join(annotations(report, base=str(base) if base else None))
-        rendered = f"{rendered}\n\n{text(report, fail_on=fail_on, show_rationale=args.rationale)}"
+        rendered = "\n".join(render_annotations(report, base=str(base) if base else None))
+        report_text = render_text(report, fail_on=fail_on, show_rationale=args.rationale)
+        rendered = f"{rendered}\n\n{report_text}"
     else:
-        rendered = text(report, fail_on=fail_on, show_rationale=args.rationale)
+        rendered = render_text(report, fail_on=fail_on, show_rationale=args.rationale)
 
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -110,7 +111,7 @@ def _command_check(args: argparse.Namespace) -> int:
         destination = os.environ.get("GITHUB_STEP_SUMMARY")
         if destination:
             with open(destination, "a", encoding="utf-8") as handle:
-                handle.write(job_summary(report, fail_on=fail_on, base=str(base) if base else None))
+                handle.write(render_job_summary(report, fail_on=fail_on, base=str(base) if base else None))
         else:
             print("--summary was given but GITHUB_STEP_SUMMARY is not set", file=sys.stderr)
 

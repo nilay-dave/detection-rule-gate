@@ -18,7 +18,7 @@ def _count(number: int, noun: str) -> str:
     return f"{number} {noun}" if number == 1 else f"{number} {noun}s"
 
 
-def text(report: Report, *, fail_on: Severity = Severity.ERROR, show_rationale: bool = False) -> str:
+def render(report: Report, *, fail_on: Severity = Severity.ERROR, show_rationale: bool = False) -> str:
     lines: list[str] = []
     current: str | None = None
 

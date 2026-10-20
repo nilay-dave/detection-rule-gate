@@ -138,3 +138,12 @@ def test_sole_sufficiency_is_true_for_each_branch_of_an_or():
 def test_condition_is_case_insensitive_for_keywords():
     assert holds("a AND NOT b", {"a"}, {"a", "b"})
     assert holds("ALL OF them", {"a"}, {"a"})
+
+
+def test_or_collects_names_from_both_sides():
+    assert refs("a or b") == ["a", "b"]
+
+
+def test_two_adjacent_names_inside_parentheses_are_rejected():
+    with pytest.raises(ConditionError, match="unbalanced parenthesis"):
+        parse("(a b)")

@@ -182,3 +182,13 @@ def test_several_suppressions_in_one_file():
 
 def test_a_comment_that_is_not_a_suppression_is_ignored():
     assert parse_suppressions("# a normal comment about the rule\n").reasons == {}
+
+
+def test_checks_must_be_a_mapping(tmp_path):
+    with pytest.raises(PolicyError, match="checks must be a mapping"):
+        load(write(tmp_path, "checks:\n  - broad-logsource\n"))
+
+
+def test_a_check_set_to_a_list_is_rejected(tmp_path):
+    with pytest.raises(PolicyError, match="must be a severity or a mapping"):
+        load(write(tmp_path, "checks:\n  broad-logsource:\n    - error\n"))

@@ -188,3 +188,23 @@ def test_attack_message_distinguishes_tactic_actor_and_absent():
     assert "tactic" in details["tactic_only.yml"]
     assert "actor" in details["actor_tag_only.yml"]
     assert "no attack" in details["no_attack_tags.yml"]
+
+
+def test_a_file_with_a_control_byte_does_not_end_the_run(tmp_path):
+    """SafeLoader checks printability while it is constructed, so a stray
+    control byte raises before parsing begins. One such file used to end the
+    whole run rather than producing one finding."""
+    (tmp_path / "bad.yml").write_text("title: ok\x00\n", encoding="utf-8")
+    (tmp_path / "good.yml").write_text(
+        (FIXTURES / "clean" / "proc_creation_certutil_encode.yml").read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    report = engine.run([tmp_path])
+    assert report.files_scanned == 2
+    assert report.counts() == {"rule-unparseable": 1}
+
+
+def test_a_corpus_check_set_to_off_does_not_run(tmp_path):
+    config = tmp_path / ".detection-rule-gate.yml"
+    config.write_text("checks:\n  duplicate-rule-id: off\n", encoding="utf-8")
+    report = engine.run([FIXTURES / "duplicate_ids"], load(config))
+    assert report.findings == []

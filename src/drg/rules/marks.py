@@ -98,16 +98,19 @@ def load(text: str) -> Located:
     parse error with a clear message beats silently linting the first document
     and passing a file whose second half was never read.
     """
-    loader = yaml.SafeLoader(text)
+    # The constructor is inside the try on purpose. SafeLoader's Reader checks
+    # the whole string for printable characters as it is built, so a file with
+    # a stray control byte raises before get_single_node is ever called. With
+    # the constructor outside, one such file ended the entire run instead of
+    # becoming one finding, which is the failure the engine is built to avoid.
     try:
+        loader = yaml.SafeLoader(text)
         node = loader.get_single_node()
     except yaml.MarkedYAMLError as exc:
         line = exc.problem_mark.line + 1 if exc.problem_mark else None
         raise ParseError(str(exc.problem or exc), line) from exc
     except yaml.YAMLError as exc:
         raise ParseError(str(exc)) from exc
-    finally:
-        pass
 
     if node is None:
         loader.dispose()

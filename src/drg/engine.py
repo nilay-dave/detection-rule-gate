@@ -84,10 +84,11 @@ def _finding(
     line: int,
     rule: SigmaRule | None,
     suppressions: Suppressions,
-) -> Finding | None:
+) -> Finding:
+    # No OFF guard here. The caller skips a disabled check before running it,
+    # so a disabled check never produces an issue to resolve. A second guard
+    # would be a branch no test can reach and no reader can trust.
     severity = policy.severity_of(issue.check)
-    if severity is Severity.OFF:
-        return None
     reason = suppressions.reasons.get(issue.check)
     return Finding(
         check=issue.check,
@@ -172,16 +173,16 @@ def run(targets: Sequence[Path], policy: Policy | None = None) -> Report:
             if policy.severity_of(check_id) is Severity.OFF:
                 continue
             for issue in function(rule, located, policy.options_for(check_id)):
-                finding = _finding(
-                    issue,
-                    policy=policy,
-                    path=path,
-                    line=_locate(issue, located),
-                    rule=rule,
-                    suppressions=suppressions,
+                report.findings.append(
+                    _finding(
+                        issue,
+                        policy=policy,
+                        path=path,
+                        line=_locate(issue, located),
+                        rule=rule,
+                        suppressions=suppressions,
+                    )
                 )
-                if finding is not None:
-                    report.findings.append(finding)
 
     for check_id, function in corpus_checks().items():
         if policy.severity_of(check_id) is Severity.OFF:
@@ -189,16 +190,16 @@ def run(targets: Sequence[Path], policy: Policy | None = None) -> Report:
         index = {path: (rule, located) for path, rule, located in loaded}
         for path, issue in function(loaded, policy.options_for(check_id)):
             rule, located = index[path]
-            finding = _finding(
-                issue,
-                policy=policy,
-                path=path,
-                line=located.line_for(issue.path),
-                rule=rule,
-                suppressions=per_file_suppressions.get(path, Suppressions()),
+            report.findings.append(
+                _finding(
+                    issue,
+                    policy=policy,
+                    path=path,
+                    line=located.line_for(issue.path),
+                    rule=rule,
+                    suppressions=per_file_suppressions.get(path, Suppressions()),
+                )
             )
-            if finding is not None:
-                report.findings.append(finding)
 
     report.suppressed = sum(1 for finding in report.findings if finding.suppressed_reason)
     report.findings = [finding for finding in report.findings if not finding.suppressed_reason]
