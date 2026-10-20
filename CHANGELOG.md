@@ -25,8 +25,9 @@ First release.
   key instead of letting the parser discard it in silence.
 - A condition parser, so a wildcard inside a negated filter is told apart from
   a wildcard that broadens a rule.
-- Three output formats: text, GitHub annotations with a job summary, and SARIF
-  2.1.0 for the security tab.
+- Four output formats: text, GitHub annotations with a job summary, SARIF 2.1.0
+  for the security tab, and flat JSON for anything else that wants to read the
+  findings.
 - A policy file, with an unknown check id as an error rather than a silent
   no-op, and per rule suppressions that require a written reason.
 - A baseline, so the gate can be adopted on a corpus that already has findings.
