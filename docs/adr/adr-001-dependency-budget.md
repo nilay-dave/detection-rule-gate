@@ -46,6 +46,19 @@ the network is the one that actually matters to a user, and writes the result
 to the run summary rather than into the README. A number in a README that was
 measured somewhere nobody runs the tool is worse than no number.
 
+## The same lesson, later, at a smaller scale
+
+The throughput benchmark has the same shape of problem in miniature. Repeating
+a five pass median over the corpus gave 1.594s and then 1.686s, a 6% move, and
+the published figure had been written to four significant figures. Not noise on
+the scale of the install timing, but more than enough to fail a number check
+for no reason and more precision than the measurement supports.
+
+So the README publishes throughput rounded, with no verification marker, and
+says why. The markers are on the counts, which are deterministic: the same
+corpus produces the same 1,439 findings every run. A number worth checking
+automatically has to be a number that does not move on its own.
+
 ## What is measurable
 
 Installed size and dependency count were identical across every repetition:

@@ -59,6 +59,16 @@ def measure(targets: list[Path], repeats: int) -> dict:
 
     return {
         "tool_version": __version__,
+        # Recorded in the file rather than only in prose, because the first
+        # question about any published figure is what produced it. Nothing here
+        # is a simulation: every number is this tool run over third party rules
+        # that exist, at a commit anyone can check out.
+        "note": (
+            "Measured by running this tool over the real public SigmaHQ corpus at the pinned commit. "
+            "No simulation, synthetic corpus or estimate is involved. Counts are deterministic; the "
+            "timing median varies a few percent between runs, which is why seconds_min and seconds_max "
+            "are recorded and why no rounded timing figure is published behind a verification marker."
+        ),
         "corpus_commit": COMMIT,
         "repeats": repeats,
         "files_scanned": report.files_scanned,

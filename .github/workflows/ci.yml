@@ -88,10 +88,34 @@ jobs:
         run: python tools/check_numbers.py
 
       - name: The measurement did not change what is reported
-        # A corpus run that produced a different finding count than the
-        # committed metrics means either the corpus pin moved without the
-        # numbers being regenerated, or a check changed behaviour silently.
-        run: git diff --exit-code -- docs/metrics.json
+        # Compares the deterministic fields rather than the whole file. A
+        # timing median moves by a few percent between runs, so asserting the
+        # file is byte identical would fail builds for reasons that have
+        # nothing to do with the change under test. The counts do not move: the
+        # same corpus produces the same findings, so a difference there means
+        # either the pin moved without the numbers being regenerated or a check
+        # changed behaviour in silence.
+        run: |
+          git stash --quiet --include-untracked
+          python - <<'PY'
+          import json, pathlib, subprocess, sys
+          committed = json.loads(
+              subprocess.run(["git", "show", "HEAD:docs/metrics.json"],
+                             capture_output=True, text=True, check=True).stdout
+          )
+          subprocess.run(["git", "stash", "pop", "--quiet"], check=True)
+          measured = json.loads(pathlib.Path("docs/metrics.json").read_text())
+          stable = ["corpus_commit", "rules_loaded", "files_scanned", "findings_total",
+                    "suppressed", "exit_code_at_error", "exit_code_at_warning"]
+          failures = [k for k in stable if committed.get(k) != measured.get(k)]
+          for check, entry in measured["checks"].items():
+              if committed["checks"].get(check, {}).get("fired") != entry["fired"]:
+                  failures.append(f"checks.{check}.fired")
+          if failures:
+              print("committed metrics disagree with this run:", ", ".join(failures), file=sys.stderr)
+              raise SystemExit(1)
+          print(f"{len(stable)} deterministic fields and every firing rate match the committed metrics")
+          PY
 
       - name: Produce SARIF for the corpus
         run: |

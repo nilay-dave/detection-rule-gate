@@ -75,12 +75,16 @@ Full list with reasoning in [docs/checks.md](docs/checks.md).
 | `unbounded-selection` | warning | <!--number:checks.unbounded-selection.fired-->1<!--/number--> |
 
 Measured over <!--number:rules_loaded-->3799<!--/number--> rules from the public
-SigmaHQ corpus at a pinned commit, in
-<!--number:seconds_median-->1.594<!--/number-->s
-(<!--number:rules_per_second-->2383.1<!--/number--> rules/s,
-<!--number:peak_memory_mib-->85.4<!--/number--> MiB peak). `make bench`
-reproduces every number here; `docs/metrics.json` holds them with the corpus
-commit, and CI fails if the README drifts from it.
+SigmaHQ corpus at a pinned commit, producing
+<!--number:findings_total-->1439<!--/number--> findings. Those counts are
+deterministic and carry a marker that CI verifies against `docs/metrics.json`.
+
+Throughput is about 2,300 rules a second, under two seconds for the whole
+corpus, at roughly 85 MiB. Those are rounded on purpose and carry no marker:
+repeating the benchmark moves the median by a few percent, and a figure
+published to four significant figures that shifts between runs is false
+precision that would fail the build for no reason. `docs/metrics.json` records
+the median with its spread and the corpus commit; `make bench` reproduces it.
 
 ## Three things worth knowing before you turn this on
 
