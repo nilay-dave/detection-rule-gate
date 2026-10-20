@@ -200,3 +200,21 @@ def test_excludes_behave_the_same_for_relative_and_absolute_paths(tmp_path, caps
     resolved = capsys.readouterr().out
     assert "0 rules in 0 files" in absolute
     assert absolute == resolved
+
+
+def test_format_json_is_machine_readable(capsys):
+    import json
+
+    main(["check", str(FIXTURES / "violations"), NO_CONFIG, "--format", "json", "--base", str(Path.cwd())])
+    document = json.loads(capsys.readouterr().out)
+    assert document["summary"]["findings"] == 12
+    assert document["findings"][0]["check"]
+
+
+def test_format_json_to_a_file(tmp_path, capsys):
+    import json
+
+    destination = tmp_path / "out.json"
+    main(["check", str(FIXTURES / "clean"), NO_CONFIG, "--format", "json", "--output", str(destination)])
+    capsys.readouterr()
+    assert json.loads(destination.read_text(encoding="utf-8"))["findings"] == []

@@ -9,7 +9,8 @@ was sys.modules. Two things with one qualified name is worth the rename.
 """
 
 from drg.report.github import render_annotations, render_job_summary
+from drg.report.json_report import render as render_json
 from drg.report.sarif import render as render_sarif
 from drg.report.text import render as render_text
 
-__all__ = ["render_annotations", "render_job_summary", "render_sarif", "render_text"]
+__all__ = ["render_annotations", "render_job_summary", "render_json", "render_sarif", "render_text"]

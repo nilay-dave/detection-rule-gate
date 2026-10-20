@@ -28,9 +28,9 @@ from drg.baseline import record as record_baseline
 from drg.checks import Severity, registry
 from drg.engine import run
 from drg.policy import PolicyError, default_policy, discover, load
-from drg.report import render_annotations, render_job_summary, render_sarif, render_text
+from drg.report import render_annotations, render_job_summary, render_json, render_sarif, render_text
 
-FORMATS = ("auto", "text", "github", "sarif")
+FORMATS = ("auto", "text", "github", "sarif", "json")
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -116,6 +116,8 @@ def _command_check(args: argparse.Namespace) -> int:
     base = args.base
     if chosen == "sarif":
         rendered = render_sarif(report, base=base or Path.cwd(), repository=args.repository)
+    elif chosen == "json":
+        rendered = render_json(report, base=base or Path.cwd(), fail_on=fail_on)
     elif chosen == "github":
         # Annotations land on the diff; the text report goes to the log, because
         # an annotation only shows on a line that the pull request touched and

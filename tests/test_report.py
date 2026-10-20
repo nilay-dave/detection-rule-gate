@@ -244,3 +244,64 @@ def test_sarif_truncates_rather_than_failing_the_whole_upload(monkeypatch):
     doc = json.loads(render_sarif(violations(), base=Path.cwd()))
     assert len(doc["runs"][0]["results"]) == 3
     assert doc["runs"][0]["properties"]["truncated"] is True
+
+
+class TestJsonReport:
+    """The format for everything that is not GitHub."""
+
+    @staticmethod
+    def document(report=None):
+        from drg.report import render_json
+
+        return json.loads(render_json(report or violations(), base=Path.cwd()))
+
+    def test_it_is_valid_json_with_a_format_version(self):
+        document = self.document()
+        assert document["format"] == 1
+        assert document["tool_version"]
+
+    def test_every_finding_is_present_with_its_fields(self):
+        document = self.document()
+        report = violations()
+        assert len(document["findings"]) == len(report.findings)
+        for entry in document["findings"]:
+            assert set(entry) == {
+                "check",
+                "severity",
+                "summary",
+                "detail",
+                "file",
+                "line",
+                "rule_id",
+                "rule_title",
+            }
+
+    def test_paths_are_relative_with_forward_slashes(self):
+        for entry in self.document()["findings"]:
+            assert not entry["file"].startswith(("/", ".."))
+            assert "\\" not in entry["file"]
+
+    def test_the_summary_agrees_with_the_report(self):
+        """A dashboard should not have to re-derive the counts and risk
+        disagreeing with what the tool printed."""
+        report = violations()
+        summary = self.document(report)["summary"]
+        assert summary["findings"] == len(report.findings)
+        assert summary["rules_loaded"] == report.rules_loaded
+        assert summary["by_check"] == report.counts()
+        assert sum(summary["by_severity"].values()) == len(report.findings)
+
+    def test_the_exit_code_matches_the_fail_on_it_was_rendered_with(self):
+        from drg.report import render_json
+
+        report = violations()
+        strict = json.loads(render_json(report, base=Path.cwd(), fail_on=Severity.ERROR))
+        never = json.loads(render_json(report, base=Path.cwd(), fail_on=Severity.OFF))
+        assert strict["summary"]["exit_code"] == 1
+        assert never["summary"]["exit_code"] == 0
+        assert never["summary"]["fail_on"] == "off"
+
+    def test_a_clean_run_renders_an_empty_list_not_a_null(self):
+        document = self.document(clean())
+        assert document["findings"] == []
+        assert document["summary"]["suppressed"] == 1
