@@ -59,6 +59,18 @@ benchmark becomes a historical artefact that still reads as current.
 `docs/metrics.json` records the corpus commit alongside every number, so any
 figure in this repository can be traced to the tree it came from.
 
+## No simulated numbers
+
+Every figure published in this repository was produced by running this tool
+over the real corpus above. Nothing here is simulated, modelled or estimated,
+and there is no synthetic data generator in this project, so no number needs
+the "measured from a simulation" label that would otherwise belong next to it.
+
+The one quantity that was measured and then deliberately withheld is the
+dependency install time, because repeating it gave results an order of
+magnitude apart. [ADR-001](adr/adr-001-dependency-budget.md) has the readings
+and the reasoning, and CI measures it on a runner instead.
+
 ## What is not sourced from anywhere
 
 The default severity of each check. Those were set from measured firing rates

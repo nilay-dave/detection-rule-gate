@@ -1,0 +1,80 @@
+name: pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# One workflow owns gh-pages. The site and the badge endpoints used to be
+# separate workflows, which meant two jobs racing to push to the same branch on
+# every merge, and the loser failing on a non fast forward for reasons that
+# have nothing to do with the change that triggered it.
+concurrency:
+  group: gh-pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install
+        run: |
+          python -m pip install -e ".[dev]"
+          python -m pip install mkdocs-material
+
+      - name: Documentation is current before it is published
+        run: python tools/generate_checks_doc.py --check
+
+      - name: Measure coverage and count the checks
+        id: measure
+        run: |
+          python -m pytest --cov=drg --cov-report=xml --quiet
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import sys, xml.etree.ElementTree as ET
+          sys.path.insert(0, "src")
+          from drg.checks import registry
+          rate = float(ET.parse("coverage.xml").getroot().get("line-rate"))
+          print(f"coverage={rate * 100:.1f}")
+          print(f"checks={len(registry())}")
+          PY
+
+      - name: Build the site
+        run: mkdocs build --strict --site-dir public
+
+      - name: Write the badge endpoints into the site
+        run: |
+          mkdir -p public/badges
+          python - <<'PY'
+          import json, pathlib
+          coverage = float("${{ steps.measure.outputs.coverage }}")
+          checks = int("${{ steps.measure.outputs.checks }}")
+          out = pathlib.Path("public/badges")
+          # Colour from the value, so the badge means something rather than
+          # being decoration that is green whatever happens.
+          colour = "brightgreen" if coverage >= 95 else "yellow" if coverage >= 85 else "red"
+          (out / "coverage.json").write_text(
+              json.dumps({"schemaVersion": 1, "label": "coverage",
+                          "message": f"{coverage:.1f}%", "color": colour}) + "\n")
+          (out / "checks.json").write_text(
+              json.dumps({"schemaVersion": 1, "label": "checks",
+                          "message": str(checks), "color": "blue"}) + "\n")
+          PY
+
+      - name: Publish
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          cd public
+          touch .nojekyll
+          git init -q -b gh-pages
+          git add -A
+          git commit -q -m "chore: publish site and badge endpoints for ${GITHUB_SHA::12}"
+          git push -q --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" gh-pages

@@ -1,0 +1,47 @@
+site_name: detection rule gate
+site_description: Fails a detection-as-code pull request when a Sigma rule is unmapped or unbounded.
+repo_url: https://github.com/__GITHUB_USERNAME__/detection-rule-gate
+repo_name: __GITHUB_USERNAME__/detection-rule-gate
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      toggle:
+        icon: material/weather-night
+        name: Dark
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Light
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - toc.integrate
+
+nav:
+  - Overview: index.md
+  - Checks: checks.md
+  - False positives: false-positives.md
+  - Limitations: limitations.md
+  - Sources: sources.md
+  - Decisions:
+      - Dependency budget: adr/adr-001-dependency-budget.md
+      - YAML loader: adr/adr-002-yaml-loader.md
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
+
+plugins:
+  - search

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "detection-rule-gate"
 version = "0.1.0"
-description = "Fails a detection-as-code pull request when a Sigma rule is unmapped, unbounded or missing the context an analyst needs."
+description = "Fails a detection-as-code pull request when a Sigma rule is unmapped, unbounded or undocumented."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
