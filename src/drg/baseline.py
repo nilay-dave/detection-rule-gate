@@ -83,8 +83,7 @@ def load(path: Path) -> Baseline:
     version = document.get("format")
     if version != FORMAT_VERSION:
         raise BaselineError(
-            f"{path}: baseline format {version!r} is not format {FORMAT_VERSION}. "
-            f"Regenerate it with: drg baseline"
+            f"{path}: baseline format {version!r} is not format {FORMAT_VERSION}. Regenerate it with: drg baseline"
         )
 
     entries = document.get("findings")

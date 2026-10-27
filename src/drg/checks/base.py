@@ -95,9 +95,7 @@ RuleCheckFn = Callable[[SigmaRule, Located, dict[str, Any]], Iterable[Issue]]
 # many files at once and the engine has no way to infer which one an issue came
 # from. An earlier version recovered the path by splitting the message text,
 # which worked until a message was reworded.
-CorpusCheckFn = Callable[
-    [Sequence[tuple[FsPath, SigmaRule, Located]], dict[str, Any]], Iterable[tuple[FsPath, Issue]]
-]
+CorpusCheckFn = Callable[[Sequence[tuple[FsPath, SigmaRule, Located]], dict[str, Any]], Iterable[tuple[FsPath, Issue]]]
 
 _SPECS: dict[str, CheckSpec] = {}
 _RULE_CHECKS: dict[str, RuleCheckFn] = {}

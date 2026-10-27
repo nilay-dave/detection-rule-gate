@@ -303,7 +303,5 @@ def test_registering_a_duplicate_corpus_check_id_is_refused():
 
 
 def test_unknown_modifier_walks_into_nested_mappings():
-    rule, located = build(
-        detection={"selection": {"outer": {"Image|endwith": "a"}}, "condition": "selection"}
-    )
+    rule, located = build(detection={"selection": {"outer": {"Image|endwith": "a"}}, "condition": "selection"})
     assert "endwith" in details(unknown_field_modifier(rule, located, {}))[0]

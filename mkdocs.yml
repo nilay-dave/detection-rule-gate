@@ -1,7 +1,7 @@
 site_name: detection rule gate
 site_description: Fails a detection-as-code pull request when a Sigma rule is unmapped or unbounded.
-repo_url: https://github.com/__GITHUB_USERNAME__/detection-rule-gate
-repo_name: __GITHUB_USERNAME__/detection-rule-gate
+repo_url: https://github.com/nilay-dave/detection-rule-gate
+repo_name: nilay-dave/detection-rule-gate
 edit_uri: edit/main/docs/
 
 theme:

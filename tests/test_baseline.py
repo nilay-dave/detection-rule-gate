@@ -146,7 +146,10 @@ def test_check_with_a_baseline_passes_and_reports_the_count(tmp_path, capsys):
     out = tmp_path / "bl.json"
     main(["baseline", str(FIXTURES / "violations"), "--out", str(out), "--base", str(Path.cwd()), "--no-config"])
     capsys.readouterr()
-    assert main(["check", str(FIXTURES / "violations"), "--baseline", str(out), "--base", str(Path.cwd()), "--no-config"]) == 0
+    assert (
+        main(["check", str(FIXTURES / "violations"), "--baseline", str(out), "--base", str(Path.cwd()), "--no-config"])
+        == 0
+    )
     captured = capsys.readouterr()
     assert "no findings" in captured.out
     assert "12 known finding(s)" in captured.err
@@ -174,8 +177,6 @@ def test_the_fingerprint_is_the_same_one_sarif_uses():
 
     findings = findings_of("violations")
     document = json.loads(render(engine.run([FIXTURES / "violations"]), base=Path.cwd()))
-    from_sarif = {
-        result["partialFingerprints"]["drgFindingIdentity/v1"] for result in document["runs"][0]["results"]
-    }
+    from_sarif = {result["partialFingerprints"]["drgFindingIdentity/v1"] for result in document["runs"][0]["results"]}
     from_baseline = {fingerprint_of(finding, Path.cwd()) for finding in findings}
     assert from_sarif == from_baseline

@@ -112,9 +112,7 @@ def test_the_annotation_count_expression_matches_the_real_output(tmp_path):
     )
     report.write_text(completed.stdout, encoding="utf-8")
 
-    counted = subprocess.run(
-        ["grep", "-cE", pattern, str(report)], capture_output=True, text=True, check=False
-    )
+    counted = subprocess.run(["grep", "-cE", pattern, str(report)], capture_output=True, text=True, check=False)
     from drg import engine
 
     expected = len(engine.run([FIXTURES / "violations"]).findings)

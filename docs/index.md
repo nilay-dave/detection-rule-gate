@@ -40,5 +40,5 @@ drg check rules
 ```
 
 Or as a GitHub Action, or a pre-commit hook. The
-[readme](https://github.com/__GITHUB_USERNAME__/detection-rule-gate#install)
+[readme](https://github.com/nilay-dave/detection-rule-gate#install)
 has all three.

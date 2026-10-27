@@ -143,7 +143,9 @@ def test_sarif_fingerprint_ignores_the_line_number():
     same finding. A fingerprint including the line would close it and open a
     new one on every reshuffle."""
     report = violations()
-    original = [r["partialFingerprints"] for r in json.loads(render_sarif(report, base=Path.cwd()))["runs"][0]["results"]]
+    original = [
+        r["partialFingerprints"] for r in json.loads(render_sarif(report, base=Path.cwd()))["runs"][0]["results"]
+    ]
     shifted = engine.Report(
         findings=[
             type(finding)(
@@ -217,9 +219,7 @@ def test_sarif_path_outside_the_base_is_not_a_traversal():
 
 
 def _off_finding():
-    return engine.Finding(
-        check="broad-logsource", detail="x", severity=Severity.OFF, file=Path("rules/a.yml"), line=1
-    )
+    return engine.Finding(check="broad-logsource", detail="x", severity=Severity.OFF, file=Path("rules/a.yml"), line=1)
 
 
 def test_annotations_skip_a_finding_with_no_workflow_command():

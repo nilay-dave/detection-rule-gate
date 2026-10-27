@@ -139,9 +139,7 @@ def test_severity_from_policy_is_applied_to_the_finding(tmp_path):
 
 def test_check_options_from_policy_change_what_fires(tmp_path):
     config = tmp_path / ".detection-rule-gate.yml"
-    config.write_text(
-        "checks:\n  missing-falsepositives:\n    options:\n      levels: [low]\n", encoding="utf-8"
-    )
+    config.write_text("checks:\n  missing-falsepositives:\n    options:\n      levels: [low]\n", encoding="utf-8")
     report = engine.run([FIXTURES / "violations"], load(config))
     # The high severity fixture no longer qualifies; nothing at level low in
     # the violations set has a placeholder note, so the check goes quiet.

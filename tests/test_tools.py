@@ -214,7 +214,5 @@ class TestFetchCorpus:
 
     def test_the_corpus_directory_is_ignored_rather_than_vendored(self):
         assert ".corpus/" in (ROOT / ".gitignore").read_text(encoding="utf-8")
-        tracked = subprocess.run(
-            ["git", "ls-files", ".corpus"], capture_output=True, text=True, check=False, cwd=ROOT
-        )
+        tracked = subprocess.run(["git", "ls-files", ".corpus"], capture_output=True, text=True, check=False, cwd=ROOT)
         assert tracked.stdout.strip() == ""

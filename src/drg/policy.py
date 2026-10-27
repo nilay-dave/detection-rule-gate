@@ -144,9 +144,7 @@ def load(path: Path) -> Policy:
         if setting.options:
             unknown_options = sorted(set(setting.options) - set(options.get(check_id, {})))
             if unknown_options:
-                raise PolicyError(
-                    f"{path}: {check_id!r} has no option(s) {', '.join(unknown_options)}"
-                )
+                raise PolicyError(f"{path}: {check_id!r} has no option(s) {', '.join(unknown_options)}")
             options[check_id].update(setting.options)
 
     exclude = raw.get("exclude") or []
