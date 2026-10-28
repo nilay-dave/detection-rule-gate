@@ -1,9 +1,6 @@
 # detection-rule-gate
 
 [![CI](https://github.com/nilay-dave/detection-rule-gate/actions/workflows/ci.yml/badge.svg)](https://github.com/nilay-dave/detection-rule-gate/actions/workflows/ci.yml)
-[![coverage](https://img.shields.io/endpoint?url=https://nilay-dave.github.io/detection-rule-gate/badges/coverage.json)](https://nilay-dave.github.io/detection-rule-gate/)
-[![checks](https://img.shields.io/endpoint?url=https://nilay-dave.github.io/detection-rule-gate/badges/checks.json)](docs/checks.md)
-[![PyPI](https://img.shields.io/pypi/v/detection-rule-gate)](https://pypi.org/project/detection-rule-gate/)
 [![python](https://img.shields.io/badge/python-3.11%2B-blue)](pyproject.toml)
 [![licence](https://img.shields.io/badge/licence-MIT-green)](LICENSE)
 
