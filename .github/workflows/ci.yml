@@ -149,7 +149,7 @@ jobs:
           print(f"{len(run['results'])} results, every uri resolves to a real file")
           PY
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: corpus-sarif
           path: corpus.sarif
